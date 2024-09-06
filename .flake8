@@ -1,0 +1,10 @@
+[flake8]
+ignore = E501,W504,W503,E402,E131, E125, E126,E123, E741, E251, W605
+max-line-length = 79
+show-source = False
+application-import-names = cyberattacksim
+exclude =
+    .git
+    docs/
+    venv
+    build
