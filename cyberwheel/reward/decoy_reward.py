@@ -1,7 +1,14 @@
+from enum import Enum
 from typing import List, Tuple
 
 from cyberwheel.reward.reward_base import (RecurringAction, Reward, RewardMap,
                                            calc_quadratic)
+
+
+class ActionType(Enum):
+    ADD = 1
+    REMOVE = -1
+    NO_CHANGE = 0
 
 
 class DecoyReward(Reward):
@@ -26,11 +33,19 @@ class DecoyReward(Reward):
         create fewer or more recurring actions.
 
         `scaling_factor` impacts how much being outside `r` affects the reward
+
+
+        Initialize DecoyReward.
+
+        :param red_rewards: Reward map for red team actions
+        :param blue_rewards: Reward map for blue team actions
+        :param r: Range for number of recurring actions
+        :param scaling_factor: Factor to scale rewards outside the range
         """
 
         super().__init__(red_rewards, blue_rewards)
         self.blue_recurring_actions: List[RecurringAction] = []
-        self.red_recurring_actions = []
+        self.red_recurring_actions = List[Tuple[RecurringAction, bool]] = []
         self.range = r
         self.scaling_factor = scaling_factor
 
@@ -38,51 +53,44 @@ class DecoyReward(Reward):
         self,
         red_action: str,
         blue_action: str,
-        red_success: str,
+        red_success: bool,
         blue_success: bool,
         red_action_alerted: bool,
-    ) -> int | float:
-        if red_action_alerted:
-            r = abs(self.red_rewards[red_action][0]) * self.scaling_factor * 10
-        elif red_success:
-            r = self.red_rewards[red_action][0]
-            # self.handle_red_action_output(red_action)
-        else:
-            r = 0
-
-        if blue_success:
-            b = self.blue_rewards[blue_action][0]
-        else:
-            b = -100 * self.scaling_factor
+    ) -> float:
+        """Calculate the reward for a single action."""
+        r = self.calculate_red_reward(red_action, red_success, red_action_alerted)
+        b = self.calculate_blue_reward(blue_action, blue_success)
         return r + b + self.sum_recurring_blue() + self.sum_recurring_red()
 
-    def sum_recurring_blue(self) -> int | float:
-        sum = 0
-        for ra in self.blue_recurring_actions:
-            sum += self.blue_rewards[ra.action][1]
+    def calculate_red_reward(self, action: str, success: bool, alerted: bool) -> float:
+        """Calculate the reward for a red team action."""
+        if alerted:
+            return abs(self.red_rewards[action][0]) * self.scaling_factor * 10
+        return self.red_rewards[action][0] if success else 0
 
-        # Subtract the distance times the scaling factor away from the range
-        if len(self.blue_recurring_actions) > self.range[1]:
-            x = len(self.blue_recurring_actions) - self.range[1]
-            sum -= calc_quadratic(x, a=self.scaling_factor)
-        elif len(self.blue_recurring_actions) < self.range[0]:
-            x = self.range[0] - len(self.blue_recurring_actions)
-            sum -= calc_quadratic(x, a=self.scaling_factor)
+    def calculate_blue_reward(self, action: str, success: bool) -> float:
+        """Calculate the reward for a blue team action."""
+        return self.blue_rewards[action][0] if success else -100 * self.scaling_factor
 
-        if len(self.blue_recurring_actions) == 0:
-            sum = -100
-        return sum
+    def sum_recurring_blue(self) -> float:
+        """Calculate the sum of recurring blue actions rewards."""
+        sum_reward = sum(
+            self.blue_rewards[ra.action][1] for ra in self.blue_recurring_actions
+        )
 
-    def add_recurring_blue_action(self, id: str, action: str) -> None:
-        self.blue_recurring_actions.append(RecurringAction(id, action))
+        num_actions = len(self.blue_recurring_actions)
+        if num_actions > self.range[1]:
+            sum_reward -= calc_quadratic(
+                num_actions - self.range[1], a=self.scaling_factor
+            )
+        elif num_actions < self.range[0]:
+            sum_reward -= calc_quadratic(
+                self.range[0] - num_actions, a=self.scaling_factor
+            )
 
-    def remove_recurring_blue_action(self, name: str) -> None:
-        for i in range(len(self.blue_recurring_actions)):
-            if self.blue_recurring_actions[i].id == name:
-                self.blue_recurring_actions.pop(i)
-                break
+        return sum_reward if num_actions > 0 else -100
 
-    def sum_recurring_red(self) -> int | float:
+    def sum_recurring_red(self) -> float:
         sum = 0
         for ra in self.red_recurring_actions:
             if ra[1]:
@@ -92,26 +100,38 @@ class DecoyReward(Reward):
                 sum += self.red_rewards[ra[0].action][1]
         return sum
 
-    def add_recurring_red_impact(self, red_action, is_decoy) -> None:
+    def add_recurring_blue_action(self, id: str, action: str) -> None:
+        """Add a recurring blue action."""
+        self.blue_recurring_actions.append(RecurringAction(id, action))
+
+    def remove_recurring_blue_action(self, name: str) -> None:
+        """Remove a recurring blue action."""
+        self.blue_recurring_actions = [
+            ra for ra in self.blue_recurring_actions if ra.id != name
+        ]
+
+    def add_recurring_red_impact(self, red_action: str, is_decoy: bool) -> None:
+        """Add a recurring red impact."""
         self.red_recurring_actions.append(
             (RecurringAction('', red_action), is_decoy))
 
-    def handle_blue_action_output(self, blue_action: str, rec_id: str,
-                                  success: bool, recurring: int):
+    def handle_blue_action_output(
+        self, blue_action: str, rec_id: str, success: bool, recurring: ActionType
+    ) -> None:
+        """Handle the output of a blue action."""
         if not success:
             return
-
-        if recurring == -1:
+        if recurring == ActionType.REMOVE:
             self.remove_recurring_blue_action(rec_id)
-        elif recurring == 1:
+        elif recurring == ActionType.ADD:
             self.add_recurring_blue_action(rec_id, blue_action)
-        elif recurring:
+        elif recurring != ActionType.NO_CHANGE:
             raise ValueError('recurring must be either -1, 0, or 1')
 
-    def handle_red_action_output(self, red_action: str, is_decoy):
+    def handle_red_action_output(self, red_action: str, is_decoy: bool) -> None:
+        """Handle the output of a red action."""
         if 'impact' in red_action.lower():
             self.add_recurring_red_impact(red_action.lower(), is_decoy)
-        return
 
     def reset(self) -> None:
         self.blue_recurring_actions = []

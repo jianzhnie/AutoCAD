@@ -2,6 +2,7 @@ from cyberwheel.reward.reward_base import Reward, RewardMap
 
 
 class IsolateReward(Reward):
+    """这段代码定义了一个名为IsolateReward的类，用于计算红蓝双方在网络隔离场景中的奖励。"""
 
     def __init__(
         self,
@@ -20,7 +21,11 @@ class IsolateReward(Reward):
         create fewer or more recurring actions.
 
         `scaling_factor` impacts how much being outside `r` affects the reward
+
+        Args:
+            red_rewards (Dict[RedAction, float]): 红队行动对应的奖励值字典
         """
+
         self.red_rewards = red_rewards
 
     def calculate_reward(
@@ -28,15 +33,24 @@ class IsolateReward(Reward):
         red_action: str,
         blue_success: bool,
         red_action_alerted: bool,
-    ) -> int | float:
-        if red_action_alerted:
-            r = abs(self.red_rewards[red_action][0])
-        else:
-            r = self.red_rewards[red_action][0]
-        b = 0
-        if not blue_success:
-            b = -100
-        return r + b
+    ) -> float:
+        """如果红队行动被检测到(alerted),使用奖励值的绝对值 如果蓝队(防守方)失败,额外减去100分 最后返回红队奖励和蓝队惩罚的总和.
+
+        计算红队行动的奖励值
+
+        Args:
+            red_action (RedAction): 红队执行的行动
+            blue_success (bool): 蓝队是否成功防御
+            red_action_alerted (bool): 红队行动是否被检测到
+
+        Returns:
+            float: 计算得到的奖励值
+        """
+
+        reward = (abs(self.red_rewards[red_action])
+                  if red_action_alerted else self.red_rewards[red_action])
+        blue_penalty = -100 if not blue_success else 0
+        return reward + blue_penalty
 
     def reset(self) -> None:
         self.blue_recurring_actions = []
