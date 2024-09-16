@@ -27,7 +27,7 @@ class Reward(ABC):
         self.blue_rewards = blue_rewards
 
     @abstractmethod
-    def calculate_reward(self) -> Union[int, float]:
+    def calculate_reward(self) -> float:
         pass
 
     @abstractmethod
