@@ -1,6 +1,5 @@
-from importlib.resources import files
 from typing import Any, Dict, Iterable, List, Optional, Tuple
-
+from pathlib import Path
 import gymnasium as gym
 import yaml
 from gymnasium import spaces
@@ -150,12 +149,15 @@ class DynamicCyberwheel(gym.Env, Cyberwheel):
             service_mapping (Dict[str, Any]): Mapping of services to hosts.
             **kwargs: Additional keyword arguments.
         """
-        network_conf_file = files(
-            'cyberwheel.resources.configs.network').joinpath(network_config)
-        decoy_conf_file = files('cyberwheel.resources.configs.decoy_hosts'
-                                ).joinpath(decoy_host_file)
-        host_conf_file = files('cyberwheel.resources.configs.host_definitions'
-                               ).joinpath(host_def_file)
+        network_conf_file = Path("cyberwheel/resources/configs/network").joinpath(
+            network_config
+        )
+        decoy_conf_file = Path("cyberwheel/resources/configs/decoy_hosts").joinpath(
+            decoy_host_file
+        )
+        host_conf_file = Path("cyberwheel/resources/configs/host_definitions").joinpath(
+            host_def_file
+        )
 
         super().__init__(config_file_path=network_conf_file, network=network)
 
@@ -193,14 +195,16 @@ class DynamicCyberwheel(gym.Env, Cyberwheel):
         )
 
         # Initialize Blue agent
-        self.blue_conf_file = files(
-            'cyberwheel.resources.configs.blue_agent').joinpath(blue_config)
+        self.blue_conf_file = Path("cyberwheel/resources/configs/blue_agent").joinpath(
+            blue_config
+        )
         self.blue_agent = DynamicBlueAgent(self.blue_conf_file, self.network)
         self.action_space = self.blue_agent.create_action_space()
 
         # Initialize detector
-        detector_conf_file = files(
-            'cyberwheel.resources.configs.detector').joinpath(detector_config)
+        detector_conf_file = Path("cyberwheel/resources/configs/detector").joinpath(
+            detector_config
+        )
         self.detector = DetectorHandler(detector_conf_file)
 
         # Set up reward function
