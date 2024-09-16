@@ -1,13 +1,12 @@
 import json
-from importlib.resources import files
-
+from pathlib import Path
 
 def generate_art_techniques():
 
     scripts = """from cyberwheel.red_actions.technique import Technique
 """
     preamble = '\ntechnique_mapping = {'
-    metadata_path = files('cyberwheel.resources.metadata')
+    metadata_path = Path("cyberwheel/resources/metadata")
     path_to_combined_art_techniques = metadata_path.joinpath(
         'combined_art_techniques.json')
     art_techniques = {}
