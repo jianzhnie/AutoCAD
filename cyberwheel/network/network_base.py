@@ -1,7 +1,7 @@
 import ipaddress as ipa
 import json
 import random
-from importlib.resources import files
+from pathlib import Path
 from os import PathLike
 from pathlib import PosixPath
 from typing import Any, Dict, List, Optional, Union
@@ -437,7 +437,7 @@ class Network:
         # Create Network instance
         network = cls(name=config['network'].get('name'))
         # Load host types
-        conf_dir = files('cyberwheel.resources.configs.host_definitions')
+        conf_dir = Path("cyberwheel/resources/configs/host_definitions")
         conf_file = conf_dir.joinpath(host_config)
         types = cls._load_host_types(conf_file)
 
@@ -453,7 +453,7 @@ class Network:
     @staticmethod
     def _get_network_config(network_config):
         if network_config is None:
-            config_dir = files('cyberwheel.resources.configs.network')
+            config_dir = Path("cyberwheel/resources/configs/network")
             network_config: PosixPath = config_dir.joinpath(
                 'example_config.yaml')
             print(
@@ -926,7 +926,7 @@ class Network:
         services_list = host_type.get('services', [])
 
         windows_services = {}
-        config_dir = files('cyberwheel.resources.configs.services')
+        config_dir = Path("cyberwheel/resources/configs/services")
         config_file_path: PosixPath = config_dir.joinpath(
             'windows_exploitable_services.yaml')
         with open(config_file_path, 'r') as f:
