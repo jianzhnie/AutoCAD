@@ -1,6 +1,6 @@
 import builtins
 import importlib
-from importlib.resources import files
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import yaml
@@ -144,8 +144,9 @@ class DynamicBlueAgent(BlueAgent):
             action_configs = {}
             for name, config in action_info.configs.items():
                 if config not in self.configs:
-                    conf_file = files(f'cyberwheel.resources.configs.{name}'
-                                      ).joinpath(config)
+                    conf_file = Path(f"cyberwheel/resources/configs/{name}").joinpath(
+                        config
+                    )
                     with open(conf_file, 'r') as f:
                         contents = yaml.safe_load(f)
                     self.configs[config] = contents
