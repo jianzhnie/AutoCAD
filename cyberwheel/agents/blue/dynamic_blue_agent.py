@@ -7,7 +7,7 @@ import yaml
 from gymnasium import Space
 
 from cyberwheel.agents.blue.action_space import ActionSpace
-from cyberwheel.agents.blue.blue_agent import BlueAgent, BlueAgentResult
+from cyberwheel.agents.blue.blue_agent_base import BlueAgent, BlueAgentResult
 from cyberwheel.network import Network
 from cyberwheel.reward import RewardMap
 
