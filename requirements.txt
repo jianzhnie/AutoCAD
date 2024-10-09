@@ -1,5 +1,5 @@
 # server
-Django==5.1
+Django==5.1.1
 django-cors-headers==4.4.0
 gymnasium==0.29.1
 matplotlib==3.9.2
